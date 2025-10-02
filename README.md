@@ -6,11 +6,28 @@
 - `Node 20`, `npm`
 - `PostgreSQL 16` (o usar Docker Compose)
 
+**Variables de entorno (.env)**
+- Requeridas para ejecutar la API (no necesarias para pruebas unitarias):
+  - `PORT=3000`
+  - `DB_HOST=localhost`
+  - `DB_PORT=5432`
+  - `DB_USER=reservas`
+  - `DB_PASSWORD=reservas`
+  - `DB_DATABASE=reservas`
+  - `DB_SCHEMA=reservas`
+- Pruebas unitarias: no requieren conexión a BD ni `.env` (los repositorios están mockeados). Si quieres aislar config en pruebas, puedes crear opcionalmente un `.env.test` con las mismas claves.
+
 **Ejecutar con Docker (recomendado para empezar)**
 - `docker compose up --build`
 - API: `http://localhost:3000`
 - DB: `localhost:5432` (`reservas`/`reservas`/`reservas`)
-- Crea tablas y datos de prueba automáticamente vía `docker/postgres/init.sql`.
+- Creación de tablas y datos de prueba: usa los scripts SQL en `db/` (no se usan migraciones ni seeders de TypeORM).
+  - Copiar y ejecutar en el contenedor de Postgres:
+    - `docker cp "db/creacion tabla.sql" reservas_db:/tmp/creacion.sql`
+    - `docker cp "db/carga datos de prueba.sql" reservas_db:/tmp/seed.sql`
+    - `docker exec -it reservas_db psql -U reservas -d reservas -c "CREATE SCHEMA IF NOT EXISTS reservas; SET search_path TO reservas, public;"`
+    - `docker exec -it reservas_db psql -U reservas -d reservas -f /tmp/creacion.sql`
+    - `docker exec -it reservas_db psql -U reservas -d reservas -f /tmp/seed.sql`
 
 **Ejecutar local (sin Docker)**
 - Crear base de datos y variables de entorno `.env` similares a:
@@ -25,16 +42,13 @@
   - `npm run build`
   - `npm run start` (o `npm run start:dev`)
 
-**Base de Datos, Migraciones y Seed**
-- Opción A (Docker): `docker/postgres/init.sql` crea el esquema/tablas y agrega datos de ejemplo.
-- Opción B (Migraciones TypeORM):
-  - Archivo de configuración CLI: `data-source.ts:1`
-  - Migraciones incluidas:
-    - `src/migrations/1700000000000-InitSchema.ts:1` (creación de tablas)
-    - `src/migrations/1700000001000-SeedInitialData.ts:1` (datos de prueba)
-  - Scripts:
-    - `npm run migration:run` (aplica las migraciones en orden: primero esquema, luego seed)
-    - `npm run migration:revert` (revierte la última)
+**Base de Datos y datos de prueba (SQL en carpeta db/)**
+- No se usan migraciones ni seeders de TypeORM para esta prueba.
+- Ejecuta en tu Postgres (Docker o local) en este orden:
+  1) Crear el esquema y fijar el `search_path` para que las tablas queden bajo `reservas` (las entidades lo esperan):
+     - `psql -h <host> -U <user> -d <db> -c "CREATE SCHEMA IF NOT EXISTS reservas; SET search_path TO reservas, public;"`
+  2) Crear tablas: `psql -h <host> -U <user> -d <db> -f "db/creacion tabla.sql"`
+  3) Cargar datos de prueba: `psql -h <host> -U <user> -d <db> -f "db/carga datos de prueba.sql"`
 
 **Pruebas**
 - Unitarias backend (creación correcta y conflicto por solape):
@@ -58,4 +72,4 @@
 - Opcional: Dockerfile y `docker-compose.yml` para empaquetar y levantar entorno.
 
 **Notas**
-- En tiempo de ejecución, Nest usa `src/config/database.config.ts:1` (TypeOrmModule). La CLI de migraciones usa `data-source.ts:1`. Mantén las variables de entorno coherentes.
+- En tiempo de ejecución, Nest usa `src/config/database.config.ts:1` (TypeOrmModule). Asegúrate de que `DB_SCHEMA=reservas` y que las tablas estén creadas en ese esquema (siguiendo los pasos anteriores).
