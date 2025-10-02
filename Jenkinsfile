@@ -1,10 +1,5 @@
 pipeline {
-  agent {
-    docker {
-      image 'node:20-alpine'
-      args '-u root'
-    }
-  }
+  agent any
 
   options {
     timestamps()
@@ -17,26 +12,30 @@ pipeline {
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Install') {
       steps {
-        sh 'npm ci'
+        script {
+          if (isUnix()) { sh 'npm ci' } else { bat 'npm ci' }
+        }
       }
     }
 
     stage('Build') {
       steps {
-        sh 'npm run build'
+        script {
+          if (isUnix()) { sh 'npm run build' } else { bat 'npm run build' }
+        }
       }
     }
 
     stage('Test') {
       steps {
-        sh 'npm test'
+        script {
+          if (isUnix()) { sh 'npm test' } else { bat 'npm test' }
+        }
       }
     }
   }
@@ -47,4 +46,3 @@ pipeline {
     }
   }
 }
-
