@@ -9,6 +9,9 @@ export class Sala {
   @Column({ name: 'nombre', type: 'varchar', length: 100 })
   nombre!: string;
 
+  @Column({ name: 'color', type: 'varchar', length: 30 })
+  color!: string;
+
   @Column({ name: 'activa', type: 'boolean' })
   activa!: boolean;
 
